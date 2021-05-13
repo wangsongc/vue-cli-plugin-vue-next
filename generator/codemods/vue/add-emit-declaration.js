@@ -30,19 +30,45 @@ module.exports = function addEmitDeclaration(context) {
     return
   }
 
-  const properties = root
+  const defaultObject = root
     .find(j.ExportDefaultDeclaration)
     .at(0)
     .find(j.ObjectExpression)
     .at(0)
 
-  properties.replaceWith(nodePath => {
-    nodePath.node.properties.unshift(
+  let oldEmits = emits
+  let emitsProperty = defaultObject.find(j.ObjectProperty, {
+    key: {
+      type: 'Identifier',
+      name: 'emits'
+    }
+  })
+  if (emitsProperty.length > 0) {
+    oldEmits = emitsProperty
+      .at(0)
+      .get()
+      .node.value.elements.map(el => el.value)
+
+    let hasChange = false
+    for (const el of emits) {
+      if (!oldEmits.includes(el)) {
+        oldEmits.push(el)
+        hasChange = true
+      }
+    }
+    if (!hasChange) {
+      return
+    }
+    emitsProperty.remove()
+  }
+
+  defaultObject.replaceWith(({ node }) => {
+    node.properties.unshift(
       j.objectProperty(
         j.identifier('emits'),
-        j.arrayExpression(emits.map(el => j.stringLiteral(el)))
+        j.arrayExpression(oldEmits.map(el => j.stringLiteral(el)))
       )
     )
-    return nodePath.node
+    return node
   })
 }
