@@ -2,6 +2,7 @@ module.exports = function(files, filename) {
   let content = files[filename]
   content = removeEventNative(content)
   content = addTransitionFrom(content)
+  content = editVmodel(content)
   files[filename] = content
 }
 
@@ -14,6 +15,19 @@ function removeEventNative(content) {
     'g'
   )
   return content.replace(reg, '')
+}
+
+function editVmodel(content) {
+  const reg = new RegExp(
+    '(?<=<template>[\\s\\S]*?\\s)(?:v-bind:|:)\\w+.sync(?==[\\s\\S]*?</template>)',
+    'g'
+  )
+  let resolve = content.match(reg)
+  if(resolve?.length) {
+    const name =resolve[0].match(/(?<=(?:bind:|:))\w+/g)[0]
+    return content.replace(reg, `v-model:${name}`)
+  }
+  return content
 }
 
 // style
